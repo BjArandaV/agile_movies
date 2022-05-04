@@ -10,100 +10,74 @@ import {
 } from 'react-native';
 import { Text } from 'react-native-elements';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { openDatabase } from 'react-native-sqlite-storage';
-import { DATABASE_NAME } from '../components/database';
 import SkeletonPlaceholder from 'react-native-skeleton-placeholder';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import {
+  API_NOW_PLAYING,
+  API_POPULAR_MOVIES,
+  API_REFRESH_TOKEN,
+} from '../utils/api';
 
 const MoviesScreen = ({ navigation }) => {
   const [data, setData] = useState({
     popularMovies: null,
     nowPlaying: null,
   });
-  let token1 = '';
-  let refresh_token1 = '';
   const [loading, setLoading] = useState(true);
-  let tokenFinal = '';
-
-  const loadData = async () => {
-    try {
-      const db = await openDatabase({ name: DATABASE_NAME });
-      db.transaction(tx => {
-        tx.executeSql('SELECT * FROM token', [], (_, results) => {
-          const temp = [];
-          for (let i = 0; i < results.rows.length; i++) {
-            temp.push(results.rows.item(i));
-          }
-
-          token1 = temp[0].token;
-
-          console.log('token1', token1);
-        });
-      });
-      db.transaction(tx => {
-        tx.executeSql('SELECT * FROM refresh_token', [], (_, results) => {
-          const temp = [];
-          for (let i = 0; i < results.rows.length; i++) {
-            temp.push(results.rows.item(i));
-          }
-          refresh_token1 = temp[0].refresh_token;
-        });
-      });
-    } catch (e) {
-      console.log('error al cargar db');
-    }
-    try {
-      await axios({
-        method: 'get',
-        url: `http://161.35.140.236:9005/api/movies/popular`,
-        headers: {
-          Authorization: `Bearer ${token1}`,
-        },
-      });
-      console.log('token');
-      tokenFinal = token1;
-    } catch (e) {
-      try {
-        await axios({
-          method: 'get',
-          url: `http://161.35.140.236:9005/api/movies/popular`,
-          headers: {
-            Authorization: `Bearer ${refresh_token1}`,
-          },
-        });
-        console.log('refresh token');
-        tokenFinal = refresh_token1;
-      } catch (e) {
-        console.log('error en try checktoken');
-      }
-    }
-    return tokenFinal;
-  };
 
   const getMovies = async () => {
     try {
+      const asyncToken = await AsyncStorage.getItem('token');
       const respMovies = await axios({
         method: 'get',
-        url: `http://161.35.140.236:9005/api/movies/popular`,
+        url: API_POPULAR_MOVIES,
         headers: {
-          Authorization: `Bearer ${await loadData()}`,
+          Authorization: `Bearer ${asyncToken}`,
         },
       });
       const respNowPlaying = await axios({
         method: 'get',
-        url: `http://161.35.140.236:9005/api/movies/now_playing`,
+        url: API_NOW_PLAYING,
         headers: {
-          Authorization: `Bearer ${await loadData()}`,
+          Authorization: `Bearer ${asyncToken}`,
         },
       });
       setData({
         popularMovies: respMovies.data.data,
         nowPlaying: respNowPlaying.data.data,
       });
+      if (loading) {
+        setLoading(false);
+      }
     } catch (e) {
-      console.log('error al traer peliculas');
+      checkToken();
     }
-    if (loading) {
-      setLoading(false);
+  };
+
+  const checkToken = async () => {
+    try {
+      const refresh_token = await AsyncStorage.getItem('refresh_token');
+      const respToken = await axios({
+        method: 'post',
+        url: API_REFRESH_TOKEN,
+        data: {
+          refresh_token,
+        },
+      });
+      await AsyncStorage.removeItem('token');
+      await AsyncStorage.setItem('token', respToken.data.data.payload.token);
+      await getMovies();
+    } catch (e) {
+      Alert.alert(
+        'Error',
+        'Ha ocurrido un error inesperado...',
+        [
+          {
+            text: 'Ok',
+          },
+        ],
+        { cancelable: false },
+      );
     }
   };
 
@@ -122,90 +96,20 @@ const MoviesScreen = ({ navigation }) => {
 
             <View
               style={{ flexDirection: 'row', marginLeft: 20, marginTop: 20 }}>
-              <View
-                style={{
-                  width: 120,
-                  height: 180,
-                  resizeMode: 'cover',
-                  borderRadius: 5,
-                  marginRight: 8,
-                }}></View>
-              <View
-                style={{
-                  width: 120,
-                  height: 180,
-                  resizeMode: 'cover',
-                  borderRadius: 5,
-                  marginRight: 8,
-                }}></View>
-              <View
-                style={{
-                  width: 120,
-                  height: 180,
-                  resizeMode: 'cover',
-                  borderRadius: 5,
-                  marginRight: 8,
-                }}></View>
-              <View
-                style={{
-                  width: 120,
-                  height: 180,
-                  resizeMode: 'cover',
-                  borderRadius: 5,
-                  marginRight: 8,
-                }}></View>
-              <View
-                style={{
-                  width: 120,
-                  height: 180,
-                  resizeMode: 'cover',
-                  borderRadius: 5,
-                  marginRight: 8,
-                }}></View>
+              <Placeholder />
+              <Placeholder />
+              <Placeholder />
+              <Placeholder />
+              <Placeholder />
             </View>
             <View style={{ marginTop: 50 }}></View>
             <View
               style={{ flexDirection: 'row', marginLeft: 20, marginTop: 20 }}>
-              <View
-                style={{
-                  width: 120,
-                  height: 180,
-                  resizeMode: 'cover',
-                  borderRadius: 5,
-                  marginRight: 8,
-                }}></View>
-              <View
-                style={{
-                  width: 120,
-                  height: 180,
-                  resizeMode: 'cover',
-                  borderRadius: 5,
-                  marginRight: 8,
-                }}></View>
-              <View
-                style={{
-                  width: 120,
-                  height: 180,
-                  resizeMode: 'cover',
-                  borderRadius: 5,
-                  marginRight: 8,
-                }}></View>
-              <View
-                style={{
-                  width: 120,
-                  height: 180,
-                  resizeMode: 'cover',
-                  borderRadius: 5,
-                  marginRight: 8,
-                }}></View>
-              <View
-                style={{
-                  width: 120,
-                  height: 180,
-                  resizeMode: 'cover',
-                  borderRadius: 5,
-                  marginRight: 8,
-                }}></View>
+              <Placeholder />
+              <Placeholder />
+              <Placeholder />
+              <Placeholder />
+              <Placeholder />
             </View>
             <View style={{ marginTop: 50 }}></View>
           </SkeletonPlaceholder>
@@ -315,6 +219,20 @@ const MoviesScreen = ({ navigation }) => {
     </>
   );
 };
+
+function Placeholder() {
+  return (
+    <View
+      style={{
+        width: 120,
+        height: 180,
+        resizeMode: 'cover',
+        borderRadius: 5,
+        marginRight: 8,
+      }}
+    />
+  );
+}
 
 const styles = StyleSheet.create({
   mainBg: {

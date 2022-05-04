@@ -1,3 +1,4 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import React, { useEffect, useState } from 'react';
 import {
@@ -8,93 +9,64 @@ import {
   StyleSheet,
   Image,
 } from 'react-native';
-import { openDatabase } from 'react-native-sqlite-storage';
-import { DATABASE_NAME } from '../components/database';
-import Mybutton from '../components/MyButton';
+import CustomButton from '../components/CustomButton';
 import { Styles } from '../components/Styles';
+import { API_REFRESH_TOKEN, API_USER_ME } from '../utils/api';
 
 const HomeScreen = ({ navigation }) => {
   const [data, setData] = useState({
     activeUser: null,
   });
-  let token1 = '';
-  let refresh_token1 = '';
-  let tokenFinal = '';
 
-  const loadData = async () => {
+  const getUsers = async () => {
     try {
-      const db = await openDatabase({ name: DATABASE_NAME });
-      db.transaction(tx => {
-        tx.executeSql('SELECT * FROM token', [], (_, results) => {
-          const temp = [];
-          for (let i = 0; i < results.rows.length; i++) {
-            temp.push(results.rows.item(i));
-          }
-
-          token1 = temp[0].token;
-
-          console.log('token1', token1);
-        });
-      });
-      db.transaction(tx => {
-        tx.executeSql('SELECT * FROM refresh_token', [], (_, results) => {
-          const temp = [];
-          for (let i = 0; i < results.rows.length; i++) {
-            temp.push(results.rows.item(i));
-          }
-          refresh_token1 = temp[0].refresh_token;
-        });
-      });
-    } catch (e) {
-      console.log('error al cargar db');
-    }
-    try {
-      await axios({
-        method: 'get',
-        url: `http://161.35.140.236:9005/api/movies/popular`,
-        headers: {
-          Authorization: `Bearer ${token1}`,
-        },
-      });
-      console.log('token');
-      tokenFinal = token1;
-    } catch (e) {
-      try {
-        await axios({
-          method: 'get',
-          url: `http://161.35.140.236:9005/api/movies/popular`,
-          headers: {
-            Authorization: `Bearer ${refresh_token1}`,
-          },
-        });
-        console.log('refresh token');
-        tokenFinal = refresh_token1;
-      } catch (e) {
-        console.log('error en try checktoken');
-      }
-    }
-    return tokenFinal;
-  };
-
-  const getMovies = async () => {
-    try {
+      const asyncToken = await AsyncStorage.getItem('token');
+      console.log('token valido', asyncToken);
       const respUser = await axios({
         method: 'get',
-        url: `http://161.35.140.236:9005/api/user/me`,
+        url: API_USER_ME,
         headers: {
-          Authorization: `Bearer ${await loadData()}`,
+          Authorization: `Bearer ${asyncToken}`,
         },
       });
       setData({
         activeUser: respUser.data.data,
       });
     } catch (e) {
-      console.log('error al traer peliculas');
+      checkToken();
+    }
+  };
+  const checkToken = async () => {
+    try {
+      const refresh_token = await AsyncStorage.getItem('refresh_token');
+
+      const respToken = await axios({
+        method: 'post',
+        url: API_REFRESH_TOKEN,
+        data: {
+          refresh_token,
+        },
+      });
+      await AsyncStorage.removeItem('token');
+      await AsyncStorage.setItem('token', respToken.data.data.payload.token);
+
+      await getUsers();
+    } catch (e) {
+      Alert.alert(
+        'Error',
+        'Ha ocurrido un error inesperado...',
+        [
+          {
+            text: 'Ok',
+          },
+        ],
+        { cancelable: false },
+      );
     }
   };
 
   useEffect(() => {
-    getMovies();
+    getUsers();
   }, []);
 
   const logOut = () => {
@@ -113,14 +85,20 @@ const HomeScreen = ({ navigation }) => {
   };
   const loggingOut = async () => {
     try {
-      const db = await openDatabase({ name: DATABASE_NAME });
-      db.transaction(tx => {
-        tx.executeSql(`DELETE FROM token`, []);
-        tx.executeSql(`DELETE FROM refresh_token`, []);
-      });
+      await AsyncStorage.removeItem('token');
+      await AsyncStorage.removeItem('refresh_token');
       navigation.replace('Login');
     } catch (e) {
-      console.log('Error al borrar datos de la base de datos', e);
+      Alert.alert(
+        'Error',
+        'Ha ocurrido un error inesperado...',
+        [
+          {
+            text: 'Ok',
+          },
+        ],
+        { cancelable: false },
+      );
     }
   };
   const firstName = data.activeUser?.firstName;
@@ -147,29 +125,12 @@ const HomeScreen = ({ navigation }) => {
           <Text style={{ color: 'white' }}>Cerrar sesión</Text>
         </TouchableOpacity>
 
-        <Image
-          source={require('../assets/logo.png')}
-          style={{
-            width: 350,
-            height: 210,
-            top: 30,
-            alignSelf: 'center',
-          }}
-        />
-        <Text
-          style={{
-            color: '#fff',
-            alignSelf: 'center',
-            fontSize: 35,
-            marginTop: 100,
-            fontWeight: 'bold',
-          }}>
-          Agile Movies
-        </Text>
+        <Image source={require('../assets/logo.png')} style={styles.imgStyle} />
+        <Text style={styles.text}>Agile Movies</Text>
 
         <View style={Styles.formContainer}>
           <View>
-            <Mybutton
+            <CustomButton
               title="Ver peliculas"
               customClick={() => navigation.navigate('MoviesScreen')}
             />
@@ -193,11 +154,21 @@ const styles = StyleSheet.create({
   },
   text: {
     color: '#ffffff',
+    alignSelf: 'center',
+    fontSize: 35,
+    marginTop: 100,
+    fontWeight: 'bold',
   },
   mainBg: {
     backgroundColor: '#18181B',
     height: '100%',
     width: '100%',
+  },
+  imgStyle: {
+    alignSelf: 'center',
+    fontSize: 35,
+    marginTop: 100,
+    fontWeight: 'bold',
   },
 });
 

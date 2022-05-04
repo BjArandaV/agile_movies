@@ -6,17 +6,17 @@ import {
   ImageBackground,
   ScrollView,
   FlatList,
-  TouchableOpacity,
 } from 'react-native';
 import React, { useState, useEffect } from 'react';
-import { DATABASE_NAME } from '../components/database';
-import { openDatabase } from 'react-native-sqlite-storage';
 import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import {
+  API_MOVIES_ACTORS,
+  API_POPULAR_MOVIES,
+  API_REFRESH_TOKEN,
+} from '../utils/api';
 
 const Movieid = ({ route, navigation }) => {
-  let token1 = '';
-  let refresh_token1 = '';
-  let tokenFinal = '';
   const { id, title, poster_path, backdrop_path, overview, release_date } =
     route.params;
 
@@ -24,77 +24,21 @@ const Movieid = ({ route, navigation }) => {
     movieDetails: null,
     actors: null,
   });
-
-  const loadData = async () => {
-    try {
-      const db = await openDatabase({ name: DATABASE_NAME });
-      db.transaction(tx => {
-        tx.executeSql('SELECT * FROM token', [], (_, results) => {
-          const temp = [];
-          for (let i = 0; i < results.rows.length; i++) {
-            temp.push(results.rows.item(i));
-          }
-
-          token1 = temp[0].token;
-
-          console.log('token1', token1);
-        });
-      });
-      db.transaction(tx => {
-        tx.executeSql('SELECT * FROM refresh_token', [], (_, results) => {
-          const temp = [];
-          for (let i = 0; i < results.rows.length; i++) {
-            temp.push(results.rows.item(i));
-          }
-          refresh_token1 = temp[0].refresh_token;
-        });
-      });
-    } catch (e) {
-      console.log('error al cargar db');
-    }
-    try {
-      await axios({
-        method: 'get',
-        url: `http://161.35.140.236:9005/api/movies/popular`,
-        headers: {
-          Authorization: `Bearer ${token1}`,
-        },
-      });
-
-      tokenFinal = token1;
-    } catch (e) {
-      try {
-        await axios({
-          method: 'get',
-          url: `http://161.35.140.236:9005/api/movies/popular`,
-          headers: {
-            Authorization: `Bearer ${refresh_token1}`,
-          },
-        });
-
-        tokenFinal = refresh_token1;
-      } catch (e) {
-        console.log('error en try checktoken');
-      }
-    }
-
-    return tokenFinal;
-  };
-
   const getMovies = async () => {
     try {
+      const asyncToken = await AsyncStorage.getItem('token');
       const respMovies = await axios({
         method: 'get',
-        url: `http://161.35.140.236:9005/api/movies/popular`,
+        url: API_POPULAR_MOVIES,
         headers: {
-          Authorization: `Bearer ${await loadData()}`,
+          Authorization: `Bearer ${asyncToken}`,
         },
       });
       const respCast = await axios({
         method: 'get',
-        url: `http://161.35.140.236:9005/api/movies/${id}/actors`,
+        url: API_MOVIES_ACTORS + `/${id}/actors`,
         headers: {
-          Authorization: `Bearer ${await loadData()}`,
+          Authorization: `Bearer ${asyncToken}`,
         },
       });
 
@@ -104,6 +48,34 @@ const Movieid = ({ route, navigation }) => {
       });
     } catch (e) {
       console.log('error al traer peliculas');
+      checkToken();
+    }
+  };
+  const checkToken = async () => {
+    try {
+      const refresh_token = await AsyncStorage.getItem('refresh_token');
+      const respToken = await axios({
+        method: 'post',
+        url: API_REFRESH_TOKEN,
+        data: {
+          refresh_token,
+        },
+      });
+      await AsyncStorage.removeItem('token');
+      await AsyncStorage.setItem('token', respToken.data.data.payload.token);
+
+      await getMovies();
+    } catch (e) {
+      Alert.alert(
+        'Error',
+        'Ha ocurrido un error inesperado...',
+        [
+          {
+            text: 'Ok',
+          },
+        ],
+        { cancelable: false },
+      );
     }
   };
 
@@ -126,6 +98,7 @@ const Movieid = ({ route, navigation }) => {
             uri: backdrop_path,
           }}
         />
+
         <View style={{ paddingTop: 180 }}>
           <Image
             style={{
