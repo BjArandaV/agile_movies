@@ -7,12 +7,14 @@
     "ios": "react-native run-ios",
     "start": "react-native start",
     "test": "jest",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "gd-cache": "cd android && gradlew clean && cd .."
   },
   "dependencies": {
     "@fortawesome/fontawesome-svg-core": "^6.1.1",
     "@fortawesome/free-solid-svg-icons": "^6.1.1",
     "@fortawesome/react-fontawesome": "^0.1.18",
+    "@react-native-community/masked-view": "^0.1.11",
     "@react-navigation/native": "^6.0.10",
     "@react-navigation/stack": "^6.2.1",
     "axios": "^0.27.2",
@@ -21,6 +23,8 @@
     "react-native-elements": "^3.4.2",
     "react-native-gesture-handler": "^2.4.1",
     "react-native-get-random-values": "^1.8.0",
+    "react-native-linear-gradient": "^2.5.6",
+    "react-native-reanimated": "^2.8.0",
     "react-native-safe-area-context": "^4.2.5",
     "react-native-screens": "^3.13.1",
     "react-native-skeleton-placeholder": "^5.0.0",

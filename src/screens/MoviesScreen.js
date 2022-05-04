@@ -5,19 +5,24 @@ import {
   StatusBar,
   StyleSheet,
   TouchableOpacity,
+  Image,
   View,
 } from 'react-native';
-import { Card, Text } from 'react-native-elements';
+import { Text } from 'react-native-elements';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { openDatabase } from 'react-native-sqlite-storage';
 import { DATABASE_NAME } from '../components/database';
-import Mybutton from '../components/MyButton';
-import { Styles } from '../components/Styles';
+import SkeletonPlaceholder from 'react-native-skeleton-placeholder';
 
 const MoviesScreen = ({ navigation }) => {
-  const [token, setToken] = useState('');
-  const [refresh_token, setRefresh_Token] = useState('');
-  const [movies, setMovies] = useState([]);
+  const [data, setData] = useState({
+    popularMovies: null,
+    nowPlaying: null,
+  });
+  let token1 = '';
+  let refresh_token1 = '';
+  const [loading, setLoading] = useState(true);
+  let tokenFinal = '';
 
   const loadData = async () => {
     try {
@@ -28,8 +33,10 @@ const MoviesScreen = ({ navigation }) => {
           for (let i = 0; i < results.rows.length; i++) {
             temp.push(results.rows.item(i));
           }
-          setToken(temp[0].token);
-          console.log('token', temp);
+
+          token1 = temp[0].token;
+
+          console.log('token1', token1);
         });
       });
       db.transaction(tx => {
@@ -38,177 +45,282 @@ const MoviesScreen = ({ navigation }) => {
           for (let i = 0; i < results.rows.length; i++) {
             temp.push(results.rows.item(i));
           }
-          setRefresh_Token(temp[0].refresh_token);
+          refresh_token1 = temp[0].refresh_token;
         });
       });
     } catch (e) {
       console.log('error al cargar db');
     }
-  };
-
-  const checkToken = async () => {
     try {
       await axios({
         method: 'get',
         url: `http://161.35.140.236:9005/api/movies/popular`,
         headers: {
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${token1}`,
         },
       });
       console.log('token');
-      getMovies(token);
+      tokenFinal = token1;
     } catch (e) {
       try {
         await axios({
           method: 'get',
           url: `http://161.35.140.236:9005/api/movies/popular`,
           headers: {
-            Authorization: `Bearer ${refresh_token}`,
+            Authorization: `Bearer ${refresh_token1}`,
           },
         });
         console.log('refresh token');
-        getMovies(refresh_token);
+        tokenFinal = refresh_token1;
       } catch (e) {
         console.log('error en try checktoken');
       }
     }
+    return tokenFinal;
   };
 
-  const getMovies = async validToken => {
+  const getMovies = async () => {
     try {
-      const response = await axios({
+      const respMovies = await axios({
         method: 'get',
         url: `http://161.35.140.236:9005/api/movies/popular`,
         headers: {
-          Authorization: `Bearer ${validToken}`,
+          Authorization: `Bearer ${await loadData()}`,
         },
       });
-
-      allDataMovies(response.data.data);
+      const respNowPlaying = await axios({
+        method: 'get',
+        url: `http://161.35.140.236:9005/api/movies/now_playing`,
+        headers: {
+          Authorization: `Bearer ${await loadData()}`,
+        },
+      });
+      setData({
+        popularMovies: respMovies.data.data,
+        nowPlaying: respNowPlaying.data.data,
+      });
     } catch (e) {
       console.log('error al traer peliculas');
+    }
+    if (loading) {
+      setLoading(false);
     }
   };
 
   useEffect(() => {
-    loadData();
+    getMovies();
   }, []);
 
-  const listViewItemSeparator = () => {
-    return (
-      <View
-        style={{
-          height: 1,
-
-          backgroundColor: '#607D8B',
-        }}
-      />
-    );
-  };
-  const getItem = item => {
-    setEquipoSeleccionado(item);
-    setFormData({ ...formData, id_puntoLub: item.id });
-  };
-  const ListItemView = ({ item }) => {
-    // const style =
-    //   item.id === equipoSeleccionado?.id
-    //     ? { backgroundColor: 'grey' }
-    //     : undefined;
-    return (
-      <>
-        <TouchableOpacity style={[styles.item]} onPress={() => getItem(item)}>
-          <Card>
-            <View style={{ flexDirection: 'row' }}>
-              <View>
-                <Text style={styles.title}>Titulo</Text>
-                <Text style={styles.itemText}>{item?.title} </Text>
-              </View>
-            </View>
-          </Card>
-        </TouchableOpacity>
-      </>
-    );
-  };
-
-  const allDataMovies = allData => {
-    const moviesMap = allData.map(map => ({
-      id: map.id,
-      title: map.title,
-    }));
-    console.log(moviesMap);
-  };
-
-  // console.log('uf', moviesMap.title);
   return (
     <>
-      <View style={Styles.formContainer}>
-        <SafeAreaView>
+      <SafeAreaView style={styles.mainBg}>
+        {loading ? (
+          <SkeletonPlaceholder
+            backgroundColor={'#18181B'}
+            highlightColor={'gray'}>
+            <View style={{ marginTop: 50 }}></View>
+
+            <View
+              style={{ flexDirection: 'row', marginLeft: 20, marginTop: 20 }}>
+              <View
+                style={{
+                  width: 120,
+                  height: 180,
+                  resizeMode: 'cover',
+                  borderRadius: 5,
+                  marginRight: 8,
+                }}></View>
+              <View
+                style={{
+                  width: 120,
+                  height: 180,
+                  resizeMode: 'cover',
+                  borderRadius: 5,
+                  marginRight: 8,
+                }}></View>
+              <View
+                style={{
+                  width: 120,
+                  height: 180,
+                  resizeMode: 'cover',
+                  borderRadius: 5,
+                  marginRight: 8,
+                }}></View>
+              <View
+                style={{
+                  width: 120,
+                  height: 180,
+                  resizeMode: 'cover',
+                  borderRadius: 5,
+                  marginRight: 8,
+                }}></View>
+              <View
+                style={{
+                  width: 120,
+                  height: 180,
+                  resizeMode: 'cover',
+                  borderRadius: 5,
+                  marginRight: 8,
+                }}></View>
+            </View>
+            <View style={{ marginTop: 50 }}></View>
+            <View
+              style={{ flexDirection: 'row', marginLeft: 20, marginTop: 20 }}>
+              <View
+                style={{
+                  width: 120,
+                  height: 180,
+                  resizeMode: 'cover',
+                  borderRadius: 5,
+                  marginRight: 8,
+                }}></View>
+              <View
+                style={{
+                  width: 120,
+                  height: 180,
+                  resizeMode: 'cover',
+                  borderRadius: 5,
+                  marginRight: 8,
+                }}></View>
+              <View
+                style={{
+                  width: 120,
+                  height: 180,
+                  resizeMode: 'cover',
+                  borderRadius: 5,
+                  marginRight: 8,
+                }}></View>
+              <View
+                style={{
+                  width: 120,
+                  height: 180,
+                  resizeMode: 'cover',
+                  borderRadius: 5,
+                  marginRight: 8,
+                }}></View>
+              <View
+                style={{
+                  width: 120,
+                  height: 180,
+                  resizeMode: 'cover',
+                  borderRadius: 5,
+                  marginRight: 8,
+                }}></View>
+            </View>
+            <View style={{ marginTop: 50 }}></View>
+          </SkeletonPlaceholder>
+        ) : (
           <View>
-            <Mybutton title="Ver peliculas" customClick={() => checkToken()} />
+            <Text
+              style={{
+                fontSize: 18,
+                color: '#fff',
+                marginTop: 30,
+                marginLeft: 20,
+                fontWeight: 'bold',
+              }}>
+              Peliculas
+              <Text style={{ color: '#7DD329', fontSize: 22 }}> Estreno</Text>
+            </Text>
+            <View>
+              <FlatList
+                showsHorizontalScrollIndicator={false}
+                style={{ marginTop: 20, marginLeft: 20 }}
+                data={data.popularMovies}
+                horizontal
+                renderItem={element => {
+                  return (
+                    <TouchableOpacity
+                      onPress={() => {
+                        navigation.navigate('Movieid', {
+                          id: element.item.id,
+                          title: element.item.title,
+                          poster_path: `https://image.tmdb.org/t/p/w500${element.item.poster_path}`,
+                          backdrop_path: `https://image.tmdb.org/t/p/w500${element.item.backdrop_path}`,
+                          overview: element.item.overview,
+                          release_date: element.item.release_date,
+                        });
+                      }}>
+                      <Image
+                        style={{
+                          width: 120,
+                          height: 180,
+                          resizeMode: 'cover',
+                          borderRadius: 5,
+                          marginRight: 8,
+                        }}
+                        source={{
+                          uri: `https://image.tmdb.org/t/p/w500${element.item.poster_path}`,
+                        }}
+                      />
+                    </TouchableOpacity>
+                  );
+                }}
+                keyExtractor={item => item.id}
+              />
+            </View>
+            <View style={{ marginTop: 15 }}>
+              <Text
+                style={{
+                  fontSize: 20,
+                  color: '#fff',
+                  marginLeft: 20,
+                  fontWeight: 'bold',
+                }}>
+                Peliculas
+                <Text style={{ color: '#7DD329', fontSize: 22 }}>
+                  {' '}
+                  Populares
+                </Text>
+              </Text>
+              <FlatList
+                showsHorizontalScrollIndicator={false}
+                style={{ marginTop: 20, marginLeft: 20 }}
+                data={data.nowPlaying}
+                horizontal
+                renderItem={element => {
+                  return (
+                    <TouchableOpacity
+                      onPress={() => {
+                        navigation.navigate('Movieid', {
+                          id: element.item.id,
+                          title: element.item.title,
+                          poster_path: `https://image.tmdb.org/t/p/w500${element.item.poster_path}`,
+                          backdrop_path: `https://image.tmdb.org/t/p/w500${element.item.backdrop_path}`,
+                          overview: element.item.overview,
+                          release_date: element.item.release_date,
+                        });
+                      }}>
+                      <Image
+                        style={{
+                          width: 120,
+                          height: 180,
+                          resizeMode: 'cover',
+                          borderRadius: 5,
+                          marginRight: 8,
+                        }}
+                        source={{
+                          uri: `https://image.tmdb.org/t/p/w500${element.item.poster_path}`,
+                        }}
+                      />
+                    </TouchableOpacity>
+                  );
+                }}
+                keyExtractor={item => item.id}
+              />
+            </View>
           </View>
-          <View>
-            <FlatList
-              data={allDataMovies}
-              ItemSeparatorComponent={listViewItemSeparator}
-              keyExtractor={item => item?.id}
-              renderItem={({ item }) => <ListItemView item={item} />}
-            />
-          </View>
-        </SafeAreaView>
-      </View>
+        )}
+      </SafeAreaView>
     </>
   );
 };
 
 const styles = StyleSheet.create({
-  text: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    marginHorizontal: 2,
-  },
-  title: {
-    fontSize: 15,
-    color: 'black',
-    fontWeight: 'bold',
-  },
-  container: {
+  mainBg: {
+    backgroundColor: '#18181B',
+    height: '100%',
     paddingTop: StatusBar.currentHeight,
-    marginHorizontal: 20,
-  },
-  buttonContainer: {
-    alignItems: 'flex-start',
-    marginBottom: 5,
-  },
-  button: {
-    borderWidth: 2,
-    borderColor: 'black',
-    paddingHorizontal: 20,
-    paddingVertical: 5,
-    borderRadius: 10,
-    backgroundColor: '#34eb83',
-  },
-  buttonText: {
-    fontSize: 18,
-    color: 'black',
-    fontWeight: 'bold',
-  },
-  buttonImgLub: {
-    color: 'gray',
-    paddingBottom: 10,
-    paddingTop: 10,
-  },
-
-  item: {
-    paddingLeft: 15,
-    paddingTop: 8,
-    paddingBottom: 8,
-  },
-
-  itemText: {
-    fontSize: 14,
-    color: 'black',
   },
 });
 

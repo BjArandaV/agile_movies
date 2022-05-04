@@ -7,6 +7,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { useState } from 'react';
 import { StatusBar } from 'react-native';
 import MoviesScreen from './src/screens/MoviesScreen';
+import Movieid from './src/screens/Movieid';
 
 const Stack = createStackNavigator();
 
@@ -50,7 +51,21 @@ const App = () => {
           name="MoviesScreen"
           component={MoviesScreen}
           options={{
-            title: 'Peliculas populares',
+            title: 'Peliculas',
+            headerStyle: {
+              backgroundColor: 'white',
+            },
+            headerTintColor: 'black',
+            headerTitleStyle: {
+              fontWeight: 'bold',
+            },
+          }}
+        />
+        <Stack.Screen
+          name="Movieid"
+          component={Movieid}
+          options={{
+            title: 'Detalles de pelicula',
             headerStyle: {
               backgroundColor: 'white',
             },
