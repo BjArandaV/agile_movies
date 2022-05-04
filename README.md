@@ -1,8 +1,8 @@
 ### Agregar todas las librerias antes de ejecutar con:
-npm install
+`npm install`
 
 ### Ejecutar la aplicación
-npx react-native run-android
+`npx react-native run-android`
 
 
 
