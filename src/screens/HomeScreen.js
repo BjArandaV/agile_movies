@@ -166,7 +166,6 @@ const styles = StyleSheet.create({
   },
   imgStyle: {
     alignSelf: 'center',
-    fontSize: 35,
     marginTop: 100,
     fontWeight: 'bold',
   },

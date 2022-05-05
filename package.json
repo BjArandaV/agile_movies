@@ -8,7 +8,8 @@
     "start": "react-native start",
     "test": "jest",
     "lint": "eslint .",
-    "gd-cache": "cd android && gradlew clean && cd .."
+    "gd-cache": "cd android && gradlew clean && cd ..",
+    "apk": "cd android && gradlew assembleRelease && cd app/build/outputs/apk/release && start ."
   },
   "dependencies": {
     "@fortawesome/fontawesome-svg-core": "^6.1.1",
